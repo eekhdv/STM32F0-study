@@ -21,6 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "alt_main.h"
 
 /* USER CODE END Includes */
 
@@ -83,7 +84,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   /* USER CODE BEGIN 2 */
-
+    alt_main();
   /* USER CODE END 2 */
 
   /* Infinite loop */
