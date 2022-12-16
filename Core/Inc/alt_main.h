@@ -5,6 +5,8 @@
 #ifndef ALT_MAIN_H
 #define ALT_MAIN_H
 
+void init_GPIO();
+
 #ifdef __cplusplus
 extern "C"
 {
