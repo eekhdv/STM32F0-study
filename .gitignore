@@ -53,3 +53,13 @@ dkms.conf
 
 # idea
 .idea
+/Drivers/
+/.cproject
+/.mxproject
+/.project
+/CMakeLists.txt
+/CMakeLists_template.txt
+/STM32F0-study.ioc
+/STM32F051C8TX_FLASH.ld
+/cmake-build-debug/
+/ST_GDB.sh
