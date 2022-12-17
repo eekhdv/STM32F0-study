@@ -8,7 +8,6 @@ TIM_HandleTypeDef TIM_init_button;
 TIM_IC_InitTypeDef TIM_IC_user_init;
 TIM_ClockConfigTypeDef TIM_clock_source_cfg;
 
-
 int alt_main() {
     /* Initialization */
     init_GPIO();
@@ -100,7 +99,11 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* tim_baseHandle)
 }
 
 uint32_t capture_data[256] = {0};
-volatile uint8_t capture_data_w = 0;
+uint8_t capture_data_w = 0;
+uint32_t capture_data_2[256] = {0};
+
+volatile uint32_t IR_data = 0;
+volatile uint32_t IR_data_counter = 0;
 
 void TIM2_IRQHandler(void) {
     HAL_TIM_IRQHandler(&TIM_init_button);
@@ -109,6 +112,34 @@ void TIM2_IRQHandler(void) {
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
     if (htim->Instance == TIM2) {
         capture_data[capture_data_w] = HAL_TIM_ReadCapturedValue(&TIM_init_button, TIM_CHANNEL_1);
+        capture_data_2[capture_data_w] = capture_data[capture_data_w] - capture_data[capture_data_w - 1];
+
+        if (capture_data_2[capture_data_w] > 480 && capture_data_2[capture_data_w] < 520) {
+            IR_data = 0; // 117 225
+            IR_data_counter = 0;
+        } else if (capture_data_2[capture_data_w] > 110 && capture_data_2[capture_data_w] < 120) {
+            if (IR_data_counter < 32) {
+                IR_data = IR_data << 1;
+                IR_data_counter++;
+            }
+        } else if (capture_data_2[capture_data_w] > 215 && capture_data_2[capture_data_w] < 230) {
+            if (IR_data_counter < 32) {
+                IR_data = (IR_data << 1) | 0x1;
+                IR_data_counter++;
+            }
+        }
+
+        if (IR_data == 0xFF30CF) {
+            HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_9);
+            IR_data = 0;
+        } else if (IR_data == 0xFF7A85) {
+            HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_7);
+            IR_data = 0;
+        } else if (IR_data == 0xFF18E7) {
+            HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_8);
+            IR_data = 0;
+        }
+
         capture_data_w++;
     }
 
