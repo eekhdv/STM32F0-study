@@ -84,7 +84,54 @@ void init_TIM2() {
     TIM_IC_user_init.ICSelection = TIM_ICSELECTION_DIRECTTI;
     TIM_IC_user_init.ICPrescaler = TIM_ICPSC_DIV1;
     HAL_TIM_IC_ConfigChannel(&TIM_init_button, &TIM_IC_user_init, TIM_CHANNEL_1);
+}
 
+void init_IR_send(uint8_t khz) {
+    GPIO_InitTypeDef GPIO_IR_TIMER_PWM;
+    TIM_OC_InitTypeDef IR_TIMER_PWM_CH;
+
+    GPIO_IR_TIMER_PWM.Pin = GPIO_PIN_3;
+    GPIO_IR_TIMER_PWM.Mode = GPIO_MODE_AF_PP;
+    GPIO_IR_TIMER_PWM.Pull = GPIO_NOPULL;
+    GPIO_IR_TIMER_PWM.Speed = GPIO_SPEED_HIGH;
+    GPIO_IR_TIMER_PWM.Alternate = GPIO_AF2_TIM2;
+
+    HAL_GPIO_Init(GPIOA, &GPIO_IR_TIMER_PWM);
+
+    HAL_TIM_OC_DeInit(&TIM_init_button);
+
+
+    uint32_t period = 1000 / khz;
+    TIM_init_button.Instance = TIM3;
+    TIM_init_button.Init.Period = (period & 0xFFFF) - 1;
+    TIM_init_button.Init.Prescaler = 7;
+    TIM_init_button.Init.CounterMode = TIM_COUNTERMODE_UP;
+    TIM_init_button.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+
+    HAL_TIM_Base_Init(&TIM_init_button);
+    HAL_TIM_OC_Init(&TIM_init_button);
+
+    /* PWM mode 2 = Clear on compare match */
+    /* PWM mode 1 = Set on compare match */
+    IR_TIMER_PWM_CH.OCMode = TIM_OCMODE_PWM1;
+
+    /* To get proper duty cycle, you have simple equation */
+    /* pulse_length = ((TIM_Period + 1) * DutyCycle) / 100 - 1 */
+    /* where DutyCycle is in percent, between 0 and 100% */
+
+    IR_TIMER_PWM_CH.Pulse = (((uint32_t)period)/2) & 0xFFFF;
+    IR_TIMER_PWM_CH.OCPolarity = TIM_OCPOLARITY_HIGH;
+    IR_TIMER_PWM_CH.OCNPolarity = TIM_OCNPOLARITY_HIGH;
+    IR_TIMER_PWM_CH.OCFastMode = TIM_OCFAST_DISABLE;
+    IR_TIMER_PWM_CH.OCIdleState = TIM_OCIDLESTATE_RESET;
+    IR_TIMER_PWM_CH.OCNIdleState = TIM_OCNIDLESTATE_RESET;
+
+    HAL_TIM_OC_ConfigChannel(&TIM_init_button, &IR_TIMER_PWM_CH, TIM_CHANNEL_4);
+    TIM_SET_CAPTUREPOLARITY(&TIM_init_button, TIM_CHANNEL_4, TIM_CCxN_ENABLE | TIM_CCx_ENABLE );
+
+    HAL_TIM_OC_Start(&TIM_init_button, TIM_CHANNEL_4); // start generating IR carrier
+
+    //------------------------------------------------------------------
 }
 
 void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* tim_baseHandle)
