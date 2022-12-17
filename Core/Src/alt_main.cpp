@@ -8,9 +8,6 @@ TIM_HandleTypeDef TIM_init_button;
 TIM_IC_InitTypeDef TIM_IC_user_init;
 TIM_ClockConfigTypeDef TIM_clock_source_cfg;
 
-GPIO_InitTypeDef GPIO_init_IR_LED_PWM;
-TIM_OC_InitTypeDef TIM_OC_user_init_IR_TIMER_PWM_CH;
-
 enum IR_RECV_STATE {
     IR_IDLE,
     IR_MARK,
@@ -68,7 +65,6 @@ void init_GPIO() {
 }
 
 void init_TIM2() {
-    // init timer 2 for receiving data (1 CHANNEL)
     TIM_init_button.Instance = TIM2;
     TIM_init_button.Init.Prescaler = 79;
     TIM_init_button.Init.CounterMode = TIM_COUNTERMODE_UP;
@@ -88,53 +84,6 @@ void init_TIM2() {
     TIM_IC_user_init.ICSelection = TIM_ICSELECTION_DIRECTTI;
     TIM_IC_user_init.ICPrescaler = TIM_ICPSC_DIV1;
     HAL_TIM_IC_ConfigChannel(&TIM_init_button, &TIM_IC_user_init, TIM_CHANNEL_1);
-}
-
-void init_IR_send(uint32_t khz) {
-
-    // init timer 2 for sending data (4 CHANNEL)
-    GPIO_init_IR_LED_PWM.Pin = GPIO_PIN_3;
-    GPIO_init_IR_LED_PWM.Mode = GPIO_MODE_AF_PP;
-    GPIO_init_IR_LED_PWM.Pull = GPIO_NOPULL;
-    GPIO_init_IR_LED_PWM.Speed = GPIO_SPEED_HIGH;
-    GPIO_init_IR_LED_PWM.Alternate = GPIO_AF2_TIM2;
-
-    HAL_GPIO_Init(GPIOA, &GPIO_init_IR_LED_PWM);
-
-    HAL_TIM_OC_DeInit(&TIM_init_button);
-
-    /* PWM_frequency = timer_tick_frequency / (TIM_Period + 1) */
-
-    TIM_init_button.Instance = TIM3;
-    uint32_t period = 1000 / khz;
-    TIM_init_button.Init.Period = period & 0xFFFF;
-    TIM_init_button.Init.Prescaler = 100;
-    TIM_init_button.Init.CounterMode = TIM_COUNTERMODE_UP;
-    TIM_init_button.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-
-    HAL_TIM_Base_Init(&TIM_init_button);
-    HAL_TIM_OC_Init(&TIM_init_button);
-
-    /* PWM mode 2 = Clear on compare match */
-    /* PWM mode 1 = Set on compare match */
-    // IR_TIMER_PWM_CH.OCMode = TIM_OCMODE_PWM1;
-
-    /* To get proper duty cycle, you have simple equation */
-    /* pulse_length = ((TIM_Period + 1) * DutyCycle) / 100 - 1 */
-    /* where DutyCycle is in percent, between 0 and 100% */
-
-    // IR_TIMER_PWM_CH.Pulse = (((uint32_t)period)/2) & 0xFFFF;
-    // IR_TIMER_PWM_CH.OCPolarity = TIM_OCPOLARITY_HIGH;
-    // IR_TIMER_PWM_CH.OCNPolarity = TIM_OCNPOLARITY_HIGH;
-    // IR_TIMER_PWM_CH.OCFastMode = TIM_OCFAST_DISABLE;
-    // IR_TIMER_PWM_CH.OCIdleState = TIM_OCIDLESTATE_RESET;
-    // IR_TIMER_PWM_CH.OCNIdleState = TIM_OCNIDLESTATE_RESET;
-
-    // HAL_TIM_OC_ConfigChannel(&htim3, &IR_TIMER_PWM_CH, TIM_CHANNEL_2);
-    // TIM_SET_CAPTUREPOLARITY(&htim3, TIM_CHANNEL_2, TIM_CCxN_ENABLE | TIM_CCx_ENABLE );
-
-    // HAL_TIM_OC_Start(&htim3, TIM_CHANNEL_2); // start generating IR carrier
-
 
 }
 
