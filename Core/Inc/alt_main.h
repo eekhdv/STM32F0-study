@@ -9,6 +9,7 @@
 
 void init_GPIO();
 void init_TIM2();
+uint8_t decode();
 
 #ifdef __cplusplus
 extern "C"
