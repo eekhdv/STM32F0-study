@@ -5,7 +5,10 @@
 #ifndef ALT_MAIN_H
 #define ALT_MAIN_H
 
+#include "main.h"
+
 void init_GPIO();
+void init_TIM2();
 
 #ifdef __cplusplus
 extern "C"
