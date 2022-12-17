@@ -3,23 +3,29 @@
 //
 #include "alt_main.h"
 
+GPIO_InitTypeDef GPIO_init_LED = {0};
+TIM_HandleTypeDef TIM_init_button;
+TIM_IC_InitTypeDef TIM_IC_user_init;
+TIM_ClockConfigTypeDef TIM_clock_source_cfg;
+
+
 int alt_main() {
     /* Initialization */
     init_GPIO();
     init_TIM2();
 
+    HAL_TIM_Base_Start_IT(&TIM_init_button);
+    HAL_TIM_IC_Start_IT(&TIM_init_button, TIM_CHANNEL_1);
     while (true) {
         /* Super loop */
     }
 }
 
 void init_GPIO() {
-    GPIO_InitTypeDef GPIO_init_LED = {0};
-
     __HAL_RCC_GPIOA_CLK_ENABLE();
     __HAL_RCC_GPIOB_CLK_ENABLE();
 
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9 | GPIO_PIN_8 | GPIO_PIN_7, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9 | GPIO_PIN_7, GPIO_PIN_SET);
 
     GPIO_init_LED.Pin       = GPIO_PIN_9 | GPIO_PIN_8| GPIO_PIN_7;
     GPIO_init_LED.Mode      = GPIO_MODE_OUTPUT_PP;
@@ -30,12 +36,8 @@ void init_GPIO() {
 }
 
 void init_TIM2() {
-    TIM_HandleTypeDef TIM_init_button;
-    TIM_IC_InitTypeDef TIM_IC_user_init;
-    TIM_ClockConfigTypeDef TIM_clock_source_cfg;
-
     TIM_init_button.Instance = TIM2;
-    TIM_init_button.Init.Prescaler = 0;
+    TIM_init_button.Init.Prescaler = 80-1;
     TIM_init_button.Init.CounterMode = TIM_COUNTERMODE_UP;
     TIM_init_button.Init.Period = 0xffff;
     TIM_init_button.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -52,9 +54,7 @@ void init_TIM2() {
     TIM_IC_user_init.ICPolarity = TIM_INPUTCHANNELPOLARITY_RISING;
     TIM_IC_user_init.ICSelection = TIM_ICSELECTION_DIRECTTI;
     TIM_IC_user_init.ICPrescaler = TIM_ICPSC_DIV1;
-    HAL_TIM_IC_ConfigChannel(&TIM_init_button, &TIM_IC_user_init, TIM_CHANNEL_3);
-
-    HAL_TIM_IC_Start_IT(&TIM_init_button, TIM_CHANNEL_3);
+    HAL_TIM_IC_ConfigChannel(&TIM_init_button, &TIM_IC_user_init, TIM_CHANNEL_1);
 
 }
 
@@ -68,7 +68,7 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* tim_baseHandle)
 
         __HAL_RCC_GPIOA_CLK_ENABLE();
 
-        GPIO_InitStruct.Pin = GPIO_PIN_2;
+        GPIO_InitStruct.Pin = GPIO_PIN_0;
         GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
         GPIO_InitStruct.Pull = GPIO_NOPULL;
         GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
@@ -92,11 +92,24 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* tim_baseHandle)
         /**TIM2 GPIO Configuration
         PA2     ------> TIM2_CH3
         */
-        HAL_GPIO_DeInit(GPIOA, GPIO_PIN_2);
+        HAL_GPIO_DeInit(GPIOA, GPIO_PIN_0);
 
         /* TIM2 interrupt Deinit */
         HAL_NVIC_DisableIRQ(TIM2_IRQn);
     }
 }
 
+uint32_t capture_data[256] = {0};
+volatile uint8_t capture_data_w = 0;
 
+void TIM2_IRQHandler(void) {
+    HAL_TIM_IRQHandler(&TIM_init_button);
+}
+
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
+    if (htim->Instance == TIM2) {
+        capture_data[capture_data_w] = HAL_TIM_ReadCapturedValue(&TIM_init_button, TIM_CHANNEL_1);
+        capture_data_w++;
+    }
+
+}
