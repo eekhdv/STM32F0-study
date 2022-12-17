@@ -4,7 +4,7 @@
 #include "alt_main.h"
 
 GPIO_InitTypeDef GPIO_init_LED = {0};
-TIM_HandleTypeDef TIM_init_button;
+TIM_HandleTypeDef TIM2_handler_init;
 TIM_IC_InitTypeDef TIM_IC_user_init;
 TIM_ClockConfigTypeDef TIM_clock_source_cfg;
 
@@ -45,8 +45,8 @@ int alt_main() {
     init_TIM2();
     IR_data[IR_data_counter].curr_state = IR_IDLE;
 
-    HAL_TIM_Base_Start_IT(&TIM_init_button);
-    HAL_TIM_IC_Start_IT(&TIM_init_button, TIM_CHANNEL_1);
+    HAL_TIM_Base_Start_IT(&TIM2_handler_init);
+    HAL_TIM_IC_Start_IT(&TIM2_handler_init, TIM_CHANNEL_1);
     while (true) {
         /* Super loop */
     }
@@ -65,25 +65,25 @@ void init_GPIO() {
 }
 
 void init_TIM2() {
-    TIM_init_button.Instance = TIM2;
-    TIM_init_button.Init.Prescaler = 79;
-    TIM_init_button.Init.CounterMode = TIM_COUNTERMODE_UP;
-    TIM_init_button.Init.Period = 0xffff;
-    TIM_init_button.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-    TIM_init_button.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+    TIM2_handler_init.Instance = TIM2;
+    TIM2_handler_init.Init.Prescaler = 79;
+    TIM2_handler_init.Init.CounterMode = TIM_COUNTERMODE_UP;
+    TIM2_handler_init.Init.Period = 0xffff;
+    TIM2_handler_init.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+    TIM2_handler_init.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
 
-    HAL_TIM_Base_Init(&TIM_init_button);
+    HAL_TIM_Base_Init(&TIM2_handler_init);
 
     TIM_clock_source_cfg.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-    HAL_TIM_ConfigClockSource(&TIM_init_button, &TIM_clock_source_cfg);
+    HAL_TIM_ConfigClockSource(&TIM2_handler_init, &TIM_clock_source_cfg);
 
-    HAL_TIM_IC_Init(&TIM_init_button);
+    HAL_TIM_IC_Init(&TIM2_handler_init);
 
     TIM_IC_user_init.ICFilter = 0;
     TIM_IC_user_init.ICPolarity = TIM_INPUTCHANNELPOLARITY_BOTHEDGE;
     TIM_IC_user_init.ICSelection = TIM_ICSELECTION_DIRECTTI;
     TIM_IC_user_init.ICPrescaler = TIM_ICPSC_DIV1;
-    HAL_TIM_IC_ConfigChannel(&TIM_init_button, &TIM_IC_user_init, TIM_CHANNEL_1);
+    HAL_TIM_IC_ConfigChannel(&TIM2_handler_init, &TIM_IC_user_init, TIM_CHANNEL_1);
 
 }
 
@@ -131,12 +131,12 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* tim_baseHandle)
 }
 
 void TIM2_IRQHandler(void) {
-    HAL_TIM_IRQHandler(&TIM_init_button);
+    HAL_TIM_IRQHandler(&TIM2_handler_init);
 }
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
     if (htim->Instance == TIM2) {
-        capture_data[capture_data_w] = HAL_TIM_ReadCapturedValue(&TIM_init_button, TIM_CHANNEL_1);
+        capture_data[capture_data_w] = HAL_TIM_ReadCapturedValue(&TIM2_handler_init, TIM_CHANNEL_1);
         capture_data_2[capture_data_w] = capture_data[capture_data_w] - capture_data[capture_data_w - 1];
 
         capture_data_w++;
