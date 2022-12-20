@@ -25,6 +25,8 @@ uint32_t capture_data[256] = {0};
 uint8_t capture_data_w = 0;
 uint32_t capture_data_2[256] = {0};
 
+volatile uint8_t ready_to_send = 0;
+
 IR_code IR_data[10];
 volatile uint32_t IR_data_counter = 0;
 #define START_US_HDR_1 930// 829 for AC_LG
@@ -49,6 +51,10 @@ int alt_main() {
     HAL_TIM_IC_Start_IT(&TIM_init_button, TIM_CHANNEL_1);
     while (true) {
         /* Super loop */
+        if (ready_to_send) {
+            IRsend_sendLG(IR_data[0].code, IR_data[0].code_length);
+            ready_to_send = 0;
+        }
     }
 }
 
@@ -86,6 +92,41 @@ void init_TIM2() {
     HAL_TIM_IC_ConfigChannel(&TIM_init_button, &TIM_IC_user_init, TIM_CHANNEL_1);
 }
 
+void IRsend_sendLG (const uint32_t data, unsigned int nbits)
+{
+    // Set IR carrier frequency
+    init_IR_send(38);
+
+    IRsend_mark(8000);
+    IRsend_space(4000);
+    IRsend_mark(550);
+
+    unsigned long  mask;
+    for (mask = 1UL << (nbits - 1);  mask;  mask >>= 1) {
+        if (data & mask) {
+            IRsend_space(1480); // send
+            IRsend_mark(550);
+        } else {
+            IRsend_space(460); // send 0
+            IRsend_mark(550);
+        }
+    }
+
+    IRsend_space(0);  // Always end with the LED off
+}
+
+void IRsend_mark (unsigned int time)
+{
+    HAL_TIM_OC_Start(&TIM_init_button, TIM_CHANNEL_4); // Enable PWM output
+    if (time > 0) HAL_Delay(time/10);
+}
+
+void IRsend_space (unsigned int time)
+{
+    HAL_TIM_OC_Stop(&TIM_init_button, TIM_CHANNEL_4); // Disable PWM output
+    if (time > 0) HAL_Delay(time/10);
+}
+
 void init_IR_send(uint8_t khz) {
     GPIO_InitTypeDef GPIO_IR_TIMER_PWM;
     TIM_OC_InitTypeDef IR_TIMER_PWM_CH;
@@ -100,9 +141,11 @@ void init_IR_send(uint8_t khz) {
 
     HAL_TIM_OC_DeInit(&TIM_init_button);
 
+    // 8_000_000 / 210 = 38095
+    // and period = capture_data_w ???
 
     uint32_t period = 1000 / khz;
-    TIM_init_button.Instance = TIM3;
+    TIM_init_button.Instance = TIM2;
     TIM_init_button.Init.Period = (period & 0xFFFF) - 1;
     TIM_init_button.Init.Prescaler = 7;
     TIM_init_button.Init.CounterMode = TIM_COUNTERMODE_UP;
@@ -248,5 +291,6 @@ uint8_t decode() {
             }
         }
     }
+    ready_to_send = 1;
     return 1;
 }

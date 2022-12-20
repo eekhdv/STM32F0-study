@@ -10,6 +10,10 @@
 void init_GPIO();
 void init_TIM2();
 uint8_t decode();
+void IRsend_sendLG (const uint32_t data, unsigned int nbits);
+void IRsend_mark (unsigned int time);
+void IRsend_space (unsigned int time);
+void init_IR_send(uint8_t khz);
 
 #ifdef __cplusplus
 extern "C"
