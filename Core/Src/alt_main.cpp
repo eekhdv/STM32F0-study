@@ -29,11 +29,16 @@ volatile uint8_t ready_to_send = 0;
 
 IR_code IR_data[10];
 volatile uint32_t IR_data_counter = 0;
-#define START_US_HDR_1 930// 829 for AC_LG
-#define START_US_HDR_2 450// 399 for AC_LG
-#define MARK_US 63 // 55 AC_LG
-#define SPACE_ZERO_US 55 // 45 for AC_LG
-#define SPACE_ONE_US 162 // 148 for AC_LG
+//#define START_US_HDR_1 930// 829 for AC_LG
+#define START_US_HDR_1 825// 829 for AC_LG
+//#define START_US_HDR_2 450// 399 for AC_LG
+#define START_US_HDR_2 400// 399 for AC_LG
+// #define MARK_US 63 // 55 AC_LG
+#define MARK_US 55 // 55 AC_LG
+//#define SPACE_ZERO_US 55 // 45 for AC_LG
+#define SPACE_ZERO_US 45 // 45 for AC_LG
+// #define SPACE_ONE_US 162 // 148 for AC_LG
+#define SPACE_ONE_US 148 // 148 for AC_LG
 
 #define BETWEEN_START_US_HDR1(us) ( (bool ) (us > START_US_HDR_1 * 0.75  && us < START_US_HDR_1 * 1.25) )
 #define BETWEEN_START_US_HDR2(us) ( (bool ) (us > START_US_HDR_2 * 0.75  && us < START_US_HDR_2 * 1.25) )
@@ -147,7 +152,7 @@ void init_IR_send(uint8_t khz) {
     uint32_t period = 1000 / khz;
     TIM_init_button.Instance = TIM2;
     TIM_init_button.Init.Period = (period & 0xFFFF) - 1;
-    TIM_init_button.Init.Prescaler = 7;
+    TIM_init_button.Init.Prescaler = 79;
     TIM_init_button.Init.CounterMode = TIM_COUNTERMODE_UP;
     TIM_init_button.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
 
@@ -245,7 +250,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
 }
 
 uint8_t decode() {
-    if (capture_data_w < 72) return 0;
+    if (capture_data_w < 60) return 0;
     volatile uint8_t i = 1;
     HAL_NVIC_DisableIRQ(TIM2_IRQn);
 
@@ -257,11 +262,15 @@ uint8_t decode() {
             case IR_IDLE: {
                 if (i == 1 && BETWEEN_START_US_HDR1(capture_data_2[i])) {
                     i++;
+                } else {
+                    return 0;
                 }
                 if (i == 2 && BETWEEN_START_US_HDR2(capture_data_2[i])) {
                     IR_data[IR_data_counter].code = 0;
                     IR_data[IR_data_counter].code_length = 0;
                     IR_data[IR_data_counter].curr_state = IR_MARK;
+                } else {
+                    return 0;
                 }
                 break;
             }
